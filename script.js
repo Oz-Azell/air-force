@@ -14,9 +14,13 @@
   const enemySpeedMin = 1.3;
   const enemySpeedMax = 2.5;
   const enemyBulletSpeed = 5;
-  const enemyShootChancePerFrame = 0.008; // Chance per enemy to shoot each frame
+  const enemyShootChancePerFrame = 0.008;
 
-  // Player object
+  // === Background Music ===
+  const bgMusic = new Audio('music/bg-music.mp3'); // Replace with your path
+  bgMusic.loop = true;
+  bgMusic.volume = 0.5;
+
   const player = {
     x: WIDTH / 2 - playerWidth / 2,
     y: HEIGHT - playerHeight - 10,
@@ -26,18 +30,16 @@
     movingLeft: false,
     movingRight: false,
     canShoot: true,
-    shootCooldown: 300, // ms
+    shootCooldown: 300,
   };
 
   let score = 0;
   let gameOver = false;
 
-  // Storage for bullets and enemies
   const bullets = [];
   const enemies = [];
   const enemyBullets = [];
 
-  // Images for player and enemy planes using inline SVG data URL for small size
   const playerPlaneSrc = 'data:image/svg+xml;utf8,\
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="%233399ff" stroke-width="3" stroke-linejoin="round">\
 <polygon points="32 4 24 24 12 24 8 40 56 40 52 24 40 24 32 4"/>\
@@ -56,7 +58,6 @@
   const enemyImg = new Image();
   enemyImg.src = enemyPlaneSrc;
 
-  // Bullet class for player bullets
   class Bullet {
     constructor(x, y) {
       this.x = x;
@@ -78,7 +79,6 @@
     }
   }
 
-  // Enemy bullet class
   class EnemyBullet {
     constructor(x, y) {
       this.x = x;
@@ -100,7 +100,6 @@
     }
   }
 
-  // Enemy class
   class Enemy {
     constructor(x, y, speed) {
       this.x = x;
@@ -109,7 +108,7 @@
       this.height = enemyHeight;
       this.speed = speed;
       this.active = true;
-      this.shootCooldown = Math.floor(1000 + Math.random() * 2000); // ms cooldown timer
+      this.shootCooldown = Math.floor(1000 + Math.random() * 2000);
       this.lastShootTime = performance.now();
     }
     update() {
@@ -119,9 +118,7 @@
     tryShoot() {
       const now = performance.now();
       if (now - this.lastShootTime > this.shootCooldown) {
-        // Shoot bullet from center bottom of enemy
         enemyBullets.push(new EnemyBullet(this.x + this.width / 2 - bulletWidth / 2, this.y + this.height));
-        // Reset shoot timer with new random cooldown
         this.shootCooldown = Math.floor(1000 + Math.random() * 2500);
         this.lastShootTime = now;
       }
@@ -136,7 +133,6 @@
     }
   }
 
-  // Input handlers for keyboard
   window.addEventListener('keydown', e => {
     if (gameOver) return;
     if (e.key === 'ArrowLeft' || e.key === 'a') player.movingLeft = true;
@@ -148,7 +144,6 @@
     if (e.key === 'ArrowRight' || e.key === 'd') player.movingRight = false;
   });
 
-  // Touch controls
   let touchX = null;
   let touchActive = false;
   canvas.addEventListener('touchstart', e => {
@@ -173,7 +168,6 @@
     touchActive = false;
   });
 
-  // Shoot function
   function shoot() {
     if (!player.canShoot) return;
     bullets.push(new Bullet(player.x + player.width / 2 - bulletWidth / 2, player.y));
@@ -181,8 +175,7 @@
     setTimeout(() => { player.canShoot = true; }, player.shootCooldown);
   }
 
-  // Spawn enemy periodically
-  let enemySpawnInterval = 1500; // ms
+  let enemySpawnInterval = 1500;
   function spawnEnemy() {
     if (gameOver) return;
     const x = Math.random() * (WIDTH - enemyWidth);
@@ -191,38 +184,30 @@
   }
   let enemySpawnTimer = setInterval(spawnEnemy, enemySpawnInterval);
 
-  // Update game objects
   function update() {
     if (gameOver) return;
 
-    // Move player
     if (player.movingLeft) player.x -= player.speed;
     if (player.movingRight) player.x += player.speed;
     if (touchActive && touchX !== null) {
-      // Smoothly move player towards touchX
       let targetX = touchX - player.width / 2;
       let dx = targetX - player.x;
       player.x += dx * 0.3;
     }
-    // Keep player inside canvas horizontally
+
     if (player.x < 0) player.x = 0;
     if (player.x + player.width > WIDTH) player.x = WIDTH - player.width;
 
-    // Update bullets
     bullets.forEach(bullet => bullet.update());
-    // Remove inactive bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
       if (!bullets[i].active) bullets.splice(i, 1);
     }
 
-    // Update enemy bullets
     enemyBullets.forEach(bullet => bullet.update());
-    // Remove inactive enemy bullets
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
       if (!enemyBullets[i].active) enemyBullets.splice(i, 1);
     }
 
-    // Update enemies
     enemies.forEach(enemy => {
       enemy.update();
       enemy.tryShoot();
@@ -231,7 +216,6 @@
       if (!enemies[i].active) enemies.splice(i, 1);
     }
 
-    // Check collisions: bullets with enemies
     bullets.forEach(bullet => {
       enemies.forEach(enemy => {
         if (isColliding(bullet, enemy) && bullet.active && enemy.active) {
@@ -243,22 +227,15 @@
       });
     });
 
-    // Check collisions: enemies with player
     enemies.forEach(enemy => {
-      if (isColliding(enemy, player)) {
-        triggerGameOver();
-      }
+      if (isColliding(enemy, player)) triggerGameOver();
     });
 
-    // Check collisions: enemy bullets with player
     enemyBullets.forEach(ebullet => {
-      if (isColliding(ebullet, player)) {
-        triggerGameOver();
-      }
+      if (isColliding(ebullet, player)) triggerGameOver();
     });
   }
 
-  // Collision detection AABB
   function isColliding(a, b) {
     return !(
       a.x + a.width < b.x ||
@@ -268,11 +245,9 @@
     );
   }
 
-  // Draw everything
   function draw() {
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
-    // Draw player plane
     if (playerImg.complete) {
       ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
     } else {
@@ -280,17 +255,11 @@
       ctx.fillRect(player.x, player.y, player.width, player.height);
     }
 
-    // Draw bullets
     bullets.forEach(bullet => bullet.draw());
-
-    // Draw enemies
     enemies.forEach(enemy => enemy.draw());
-
-    // Draw enemy bullets
     enemyBullets.forEach(ebullet => ebullet.draw());
   }
 
-  // Game loop
   function loop() {
     update();
     draw();
@@ -299,13 +268,11 @@
     }
   }
 
-  // Update score display
   const scoreEl = document.getElementById('scoreboard');
   function updateScore() {
     scoreEl.textContent = 'Score: ' + score;
   }
 
-  // Game over handler
   const gameOverEl = document.getElementById('game-over');
   const restartBtn = document.getElementById('restart-button');
   function triggerGameOver() {
@@ -313,11 +280,11 @@
     gameOverEl.style.display = 'block';
     clearInterval(enemySpawnTimer);
   }
+
   restartBtn.addEventListener('click', () => {
     resetGame();
   });
 
-  // Reset game state
   function resetGame() {
     score = 0;
     updateScore();
@@ -333,9 +300,22 @@
     loop();
   }
 
-  // Start the game loop at load
   window.onload = () => {
     updateScore();
     loop();
+    // Start background music
+    bgMusic.play().catch(() => {
+      console.warn("Autoplay failed — waiting for user interaction");
+    });
   };
+
+  // Fallback for autoplay block
+  function resumeMusic() {
+    bgMusic.play();
+    window.removeEventListener('click', resumeMusic);
+    window.removeEventListener('touchstart', resumeMusic);
+  }
+
+  window.addEventListener('click', resumeMusic);
+  window.addEventListener('touchstart', resumeMusic);
 })();
